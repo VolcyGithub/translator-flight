@@ -19,10 +19,7 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/VolcyGithub/translator-core.git",
-            "options": {
-                "symlink": true
-            }
+            "url": "git@github.com:VolcyGithub/translator-core.git"
         }
     ],
     "require": {

@@ -26,14 +26,14 @@ class TrackedBladeOne extends BladeOne
         $this->registry = $registry;
     }
 
-    public function setView($view)
+    public function setView($view):BladeOne
     {
         $this->currentView = $view;
 
         return parent::setView($view);
     }
 
-    public function run($view = null, $variables = [], $mergeData = null)
+    public function run($view = null, $variables = [], $mergeData = null): string
     {
         $resolvedView = $view ?? $this->currentView;
 

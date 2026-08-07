@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e498bec119ad30eba2d93ee19d168b13",
+    "content-hash": "c526be22b69b5a0fb1ec810d79eaa11f",
     "packages": [
         {
             "name": "eftec/bladeone",
