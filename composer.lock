@@ -153,12 +153,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:VolcyGithub/translator-core.git",
-                "reference": "e62f247cd1e6de992357d155c3e51314f80ac1bc"
+                "reference": "2984415da2f88d7efd9ab15473502932c1b686a2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/VolcyGithub/translator-core/zipball/e62f247cd1e6de992357d155c3e51314f80ac1bc",
-                "reference": "e62f247cd1e6de992357d155c3e51314f80ac1bc",
+                "url": "https://api.github.com/repos/VolcyGithub/translator-core/zipball/2984415da2f88d7efd9ab15473502932c1b686a2",
+                "reference": "2984415da2f88d7efd9ab15473502932c1b686a2",
                 "shasum": ""
             },
             "require": {
@@ -203,7 +203,7 @@
                 "source": "https://github.com/VolcyGithub/translator-core/tree/main",
                 "issues": "https://github.com/VolcyGithub/translator-core/issues"
             },
-            "time": "2026-08-07T16:55:36+00:00"
+            "time": "2026-08-07T19:21:17+00:00"
         }
     ],
     "packages-dev": [

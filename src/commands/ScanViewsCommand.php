@@ -38,6 +38,7 @@ class ScanViewsCommand extends AbstractBaseCommand
         $viewsPath = $values['path'] ?? ($translatorConfig['views_path'] ?? null);
         $indexPath = $translatorConfig['index_path'] ?? null;
         $sourceLocale = $values['source'] ?? ($translatorConfig['source_locale'] ?? 'en');
+        $excludedFolders = $translatorConfig['excluded_folders'] ?? [];
 
         if (! $viewsPath || ! is_dir($viewsPath)) {
             $io->error("Views path not found: {$viewsPath}");
@@ -52,7 +53,7 @@ class ScanViewsCommand extends AbstractBaseCommand
         }
 
         $runner = new ScanRunner(new BladeDriver(), new NativeFilesystem(), new ViewIndexPathResolver());
-        $result = $runner->run($viewsPath, $indexPath, $sourceLocale);
+        $result = $runner->run($viewsPath, $indexPath, $sourceLocale, $excludedFolders);
 
         $io->ok("Scanned {$result['written']} file(s) into locale [{$sourceLocale}].");
     }
