@@ -19,7 +19,7 @@ use Volcy\Translator\RenderedViewsRegistry;
 class TrackedBladeOne extends BladeOne
 {
     protected ?RenderedViewsRegistry $registry = null;
-    protected $currentView = null;
+    protected string $currentView = "";
 
     public function setRegistry(RenderedViewsRegistry $registry): void
     {
