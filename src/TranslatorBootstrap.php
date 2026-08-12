@@ -4,9 +4,11 @@ namespace Volcy\Translator\Flight;
 
 use flight\Engine;
 use Volcy\Translator\BuildRunner;
+use Volcy\Translator\Contracts\IdStrategy;
 use Volcy\Translator\Drivers\BladeDriver;
 use Volcy\Translator\Filesystem\NativeFilesystem;
 use Volcy\Translator\Flight\Middleware\TranslateMiddleware;
+use Volcy\Translator\IdStrategyResolver;
 use Volcy\Translator\RenderedViewsRegistry;
 use Volcy\Translator\ScanRunner;
 use Volcy\Translator\TranslationCatalog;
@@ -45,10 +47,12 @@ class TranslatorBootstrap
     ) {
         $filesystem = new NativeFilesystem();
         $resolver = new ViewIndexPathResolver();
+        $idStrategyResolver = new IdStrategyResolver($config);
+        $idStrategy = $idStrategyResolver->strategy();
 
         $this->registry = new RenderedViewsRegistry();
         $this->catalog = new TranslationCatalog($filesystem, $resolver, $config['index_path']);
-        $this->scanRunner = new ScanRunner(new BladeDriver(), $filesystem, $resolver);
+        $this->scanRunner = new ScanRunner(new BladeDriver($idStrategy), $filesystem, $resolver, $idStrategy);
         $this->buildRunner = new BuildRunner($filesystem, $resolver, new TranslationDriverResolver($config));
 
         $localeResolver = $config['locale_resolver'] ?? static fn () => $config['source_locale'] ?? 'en';

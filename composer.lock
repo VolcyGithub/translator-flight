@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c526be22b69b5a0fb1ec810d79eaa11f",
+    "content-hash": "7158d8d89df13017463659c767bcdfbc",
     "packages": [
         {
             "name": "eftec/bladeone",
@@ -149,16 +149,16 @@
         },
         {
             "name": "volcy/translator-core",
-            "version": "dev-main",
+            "version": "v1.0.0",
             "source": {
                 "type": "git",
-                "url": "git@github.com:VolcyGithub/translator-core.git",
-                "reference": "2984415da2f88d7efd9ab15473502932c1b686a2"
+                "url": "https://github.com/VolcyGithub/translator-core.git",
+                "reference": "9778bfa19ae740d62937771b977c3902dc7cc012"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/VolcyGithub/translator-core/zipball/2984415da2f88d7efd9ab15473502932c1b686a2",
-                "reference": "2984415da2f88d7efd9ab15473502932c1b686a2",
+                "url": "https://api.github.com/repos/VolcyGithub/translator-core/zipball/9778bfa19ae740d62937771b977c3902dc7cc012",
+                "reference": "9778bfa19ae740d62937771b977c3902dc7cc012",
                 "shasum": ""
             },
             "require": {
@@ -171,39 +171,41 @@
             "require-dev": {
                 "phpunit/phpunit": "^10.0 || ^11.0 || ^13.0"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
                     "Volcy\\Translator\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Volcy\\Translator\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "authors": [
                 {
                     "name": "Yowensly Volcy",
+                    "email": "svolcy12@gmail.com",
                     "role": "Developer"
                 }
             ],
             "description": "Framework-agnostic Blade string extraction and JSON-based translation catalog.",
+            "homepage": "https://github.com/VolcyGithub/translator-core",
             "keywords": [
                 "blade",
+                "flightphp",
                 "i18n",
+                "laravel",
                 "localization",
+                "multilingual",
                 "translation"
             ],
             "support": {
-                "source": "https://github.com/VolcyGithub/translator-core/tree/main",
-                "issues": "https://github.com/VolcyGithub/translator-core/issues"
+                "docs": "https://github.com/VolcyGithub/translator-core/blob/main/README.md",
+                "issues": "https://github.com/VolcyGithub/translator-core/issues",
+                "security": "https://github.com/VolcyGithub/translator-core/blob/main/SECURITY.md",
+                "source": "https://github.com/VolcyGithub/translator-core"
             },
-            "time": "2026-08-07T19:21:17+00:00"
+            "time": "2026-08-12T20:29:23+00:00"
         }
     ],
     "packages-dev": [
@@ -2419,9 +2421,7 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "volcy/translator-core": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

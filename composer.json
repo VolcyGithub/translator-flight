@@ -1,6 +1,6 @@
 {
     "name": "volcy/translator-flight",
-    "description": "FlightPHP bridge for volcy/translator: a BladeOne wrapper, translation middleware, and Runway commands.",
+    "description": "FlightPHP bridge for volcy/translator-core: a BladeOne wrapper, translation middleware, and Runway commands.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -8,25 +8,28 @@
         "translation",
         "i18n",
         "blade",
-        "bladeone"
+        "bladeone",
+        "multilingual"
     ],
     "authors": [
         {
             "name": "Yowensly Volcy",
+            "email": "svolcy12@gmail.com",
             "role": "Developer"
         }
     ],
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "git@github.com:VolcyGithub/translator-core.git"
-        }
-    ],
+    "homepage": "https://github.com/VolcyGithub/translator-flight",
+    "support": {
+        "issues": "https://github.com/VolcyGithub/translator-flight/issues",
+        "source": "https://github.com/VolcyGithub/translator-flight",
+        "docs": "https://github.com/VolcyGithub/translator-flight/blob/main/README.md",
+        "security": "https://github.com/VolcyGithub/translator-core/blob/main/SECURITY.md"
+    },
     "require": {
         "php": "^8.0",
-        "volcy/translator-core": "dev-main",
+        "eftec/bladeone": "^4.0",
         "flightphp/core": "^3.0",
-        "eftec/bladeone": "^4.0"
+        "volcy/translator-core": "^1.0"
     },
     "suggest": {
         "flightphp/runway": "Required to use the translator:scan and translator:build CLI commands"
@@ -47,8 +50,9 @@
         }
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "optimize-autoloader": true
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "prefer-stable": true
 }

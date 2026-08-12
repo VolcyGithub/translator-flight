@@ -1,12 +1,17 @@
 # volcy/translator-flight
 
+[![Latest Stable Version](https://img.shields.io/packagist/v/volcy/translator-flight)](https://packagist.org/packages/volcy/translator-flight)
+[![Total Downloads](https://img.shields.io/packagist/dt/volcy/translator-flight)](https://packagist.org/packages/volcy/translator-flight)
+[![License](https://img.shields.io/packagist/l/volcy/translator-flight)](https://packagist.org/packages/volcy/translator-flight)
+[![PHP Version](https://img.shields.io/packagist/php-v/volcy/translator-flight)](https://packagist.org/packages/volcy/translator-flight)
+
 FlightPHP bridge for `volcy/translator-core`: a BladeOne wrapper, translation middleware, and Runway commands.
 
 ## Requirements
 - PHP 8.0+
-- `volcy/translator-core` (declared in composer.json)
-- `flightphp/core`
-- `eftec/bladeone`
+- volcy/translator-core ^1.0
+- flightphp/core ^3.0
+- eftec/bladeone ^4.0
 
 ## Installation
 
@@ -34,6 +39,9 @@ return [
         'views_path'      => __DIR__ . '/../app/views',
         'source_locale'   => 'en',
         'fallback_locale' => 'en',
+        // Optional: ID strategy for generating translation IDs
+        // Options: 'hash' (default), 'tag_path', 'explicit'
+        'id_strategy'     => 'hash',
         // Optional: callable returning the current locale
         'locale_resolver' => fn () => $_SESSION['locale'] ?? 'en',
     ],
@@ -51,6 +59,7 @@ $translator = TranslatorBootstrap::register(Flight::app(), [
     'views_path' => __DIR__ . '/../app/views',
     'source_locale' => 'en',
     'fallback_locale' => 'en',
+    'id_strategy' => 'hash', // 'hash', 'tag_path', or 'explicit'
     'locale_resolver' => fn () => $_SESSION['locale'] ?? 'en',
 ]);
 
@@ -91,16 +100,55 @@ vendor/bin/runway.bat translator:build fr --source=en
 
 See `src/commands/ScanViewsCommand.php` and `src/commands/BuildLocaleIndexCommand.php` for details and available options.
 
+## Configuration
+
+Additional configuration options for translation drivers:
+
+```php
+'translator' => [
+    // ... other config ...
+    'translation_driver' => 'groq', // 'groq', 'google', or 'cerebras'
+    'drivers' => [
+        'groq' => [
+            'key' => 'your-groq-api-key',
+            'model' => 'llama-3.1-8b-instant',
+        ],
+        'google' => [
+            'key' => 'your-google-translate-key',
+        ],
+        'cerebras' => [
+            'key' => 'your-cerebras-api-key',
+            'model' => 'llama-3.3-70b',
+        ],
+    ],
+],
+```
+
 ## API overview
 
 - `TranslatorBootstrap::register(Engine $app, array $config): TranslatorBootstrap` — registers services and returns an instance.
 - `TranslatorBootstrap::blade(string $viewsPath, string $compilePath): TrackedBladeOne` — convenience factory that wires the rendered-views registry.
 - `TranslatorBootstrap::middleware(): TranslateMiddleware` — Flight middleware to attach to groups that should be translated.
 
+## ID Strategies
+
+This package supports all ID strategies from translator-core:
+- `hash` (default): Content-based SHA1 hashes
+- `tag_path`: HTML tag path + attribute aware IDs  
+- `explicit`: Manual control via data-i18n attributes with hash fallback
+
+For detailed information about ID strategies, see the [translator-core documentation](https://github.com/VolcyGithub/translator-core#id-strategies).
+
 ## Contributing
 
-Contributions are welcome. Please open issues or PRs against the repository. Follow existing code style and include tests where appropriate.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For issues and questions, please use the [GitHub issue tracker](https://github.com/VolcyGithub/translator-flight/issues).
+
+For security issues, please see [SECURITY.md](SECURITY.md).

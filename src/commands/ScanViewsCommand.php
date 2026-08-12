@@ -7,6 +7,7 @@ namespace Volcy\Translator\Flight\Commands;
 use flight\commands\AbstractBaseCommand;
 use Volcy\Translator\Drivers\BladeDriver;
 use Volcy\Translator\Filesystem\NativeFilesystem;
+use Volcy\Translator\IdStrategyResolver;
 use Volcy\Translator\ScanRunner;
 use Volcy\Translator\ViewIndexPathResolver;
 
@@ -52,9 +53,20 @@ class ScanViewsCommand extends AbstractBaseCommand
             return;
         }
 
-        $runner = new ScanRunner(new BladeDriver(), new NativeFilesystem(), new ViewIndexPathResolver());
+        $idStrategyResolver = new IdStrategyResolver($translatorConfig);
+        $idStrategy = $idStrategyResolver->strategy();
+
+        $runner = new ScanRunner(new BladeDriver($idStrategy), new NativeFilesystem(), new ViewIndexPathResolver(), $idStrategy);
         $result = $runner->run($viewsPath, $indexPath, $sourceLocale, $excludedFolders);
 
         $io->ok("Scanned {$result['written']} file(s) into locale [{$sourceLocale}].");
+
+        // Output any warnings from collision detection
+        if (!empty($result['warnings'])) {
+            $io->warn("Found " . count($result['warnings']) . " warning(s):");
+            foreach ($result['warnings'] as $warning) {
+                $io->writeln("  - {$warning}");
+            }
+        }
     }
 }
