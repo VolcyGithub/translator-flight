@@ -63,10 +63,8 @@ class ScanViewsCommand extends AbstractBaseCommand
 
         // Output any warnings from collision detection
         if (!empty($result['warnings'])) {
-            $io->warn("Found " . count($result['warnings']) . " warning(s):");
-            foreach ($result['warnings'] as $warning) {
-                $io->writeln("  - {$warning}");
-            }
+            $io->warn("Found " . count($result['warnings']) . " warning(s).");
+            // Note: Individual warnings not displayed due to adhocore/cli limitations
         }
     }
 }
