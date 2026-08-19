@@ -13,39 +13,61 @@ class CompileViewsCommand extends AbstractBaseCommand
         $this->option('--locales [locales]', 'Comma-separated target locales (e.g. fr,es)');
     }
 
-    public function execute(): void
-    {
-        $io = $this->app()->io();
-        $config = $this->config['translator'] ?? [];
-        $viewsPath = $config['views_path'] ?? null;
-        $compilePath = $config['compile_path'] ?? null;
+public function execute(): void
+{
+    $io = $this->app()->io();
+    $config = $this->config['translator'] ?? [];
+    $viewsPath = $config['views_path'] ?? null;
+    $compilePath = $config['compile_path'] ?? null;
 
-        $targetLocales = array_map('trim', explode(',', $this->values()['locales'] ?? 'fr,es'));
+    $excludedFolders = array_map(
+        fn($f) => trim(str_replace('\\', '/', $f), '/'),
+        $config['excluded_folders'] ?? []
+    );
 
-        // Get Blade instance from Flight container or bootstrap
-        $translator = \Volcy\Translator\Flight\TranslatorBootstrap::register(Flight::app(), $config);
-        $blade = $translator->blade($viewsPath, $compilePath);
+    $targetLocales = array_map('trim', explode(',', $this->values()['locales'] ?? 'fr'));
+
+    $translator = \Volcy\Translator\Flight\TranslatorBootstrap::register(Flight::app(), $config);
+    $blade = $translator->blade($viewsPath, $compilePath);
+
+    foreach ($targetLocales as $locale) {
+        $blade->lockLocale($locale);
 
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($viewsPath));
 
         foreach ($iterator as $file) {
-            if ($file->isFile() && str_ends_with($file->getFilename(), '.blade.php')) {
-                // 1. Get real full path and normalize Windows backslashes
-                $fullPath = str_replace('\\', '/', $file->getRealPath());
-                $normalizedViewsPath = str_replace('\\', '/', realpath($viewsPath));
-
-                // 2. Extract relative view path cleanly
-                $relativePath = ltrim(str_replace($normalizedViewsPath, '', $fullPath), '/');
-
-                // 3. Convert relative path to standard Blade view notation (e.g., "admin.components.cards.member")
-                $viewName = str_replace(['.blade.php', '/'], ['', '.'], $relativePath);
-
-                // 4. Set current view so TrackedBladeOne loads the dictionary index
-                $blade->setCurrentView($viewName);
-
-                // 5. Force compilation using the clean view dot-notation name instead of raw path
-                $blade->compile($viewName, true);
+            if (!$file->isFile() || !str_ends_with($file->getFilename(), '.blade.php')) {
+                continue;
             }
+
+            $relativePath = ltrim(str_replace($viewsPath, '', $file->getPathname()), '/\\');
+            $normalized = str_replace('\\', '/', $relativePath);
+
+            if ($this->isExcluded($normalized, $excludedFolders)) {
+                continue;
+            }
+
+            $viewName = str_replace(['.blade.php', '/', '\\'], ['', '.', '.'], $relativePath);
+
+            $blade->setCurrentView($viewName);
+            $blade->compile($viewName, true);
+        }
+
+        $io->ok("Successfully pre-compiled views for locale [{$locale}].");
+    }
+}
+
+private function isExcluded(string $relativePath, array $excludedFolders): bool
+{
+    foreach ($excludedFolders as $folder) {
+        if ($folder === '') {
+            continue;
+        }
+        if ($relativePath === $folder || str_starts_with($relativePath, $folder . '/')) {
+            return true;
         }
     }
+
+    return false;
+}
 }
