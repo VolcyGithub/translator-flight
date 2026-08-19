@@ -6,6 +6,7 @@ use eftec\bladeone\BladeOne;
 use Volcy\Translator\RenderedViewsRegistry;
 use Volcy\Translator\TranslationCatalog;
 use Volcy\Translator\ViewIndexPathResolver;
+use Volcy\Translator\BalancedElementExtractor;
 
 /**
  * Drop-in replacement for BladeOne that records every view name rendered
