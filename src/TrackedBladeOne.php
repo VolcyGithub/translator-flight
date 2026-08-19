@@ -50,7 +50,7 @@ class TrackedBladeOne extends BladeOne
      */
     protected ?string $pathCache = null;
 
-    public function __construct($templatePath = null, $compiledPath = null, $mode = null)
+    public function __construct($templatePath = null, $compiledPath = null, $mode = 0)
     {
         if ($compiledPath !== null) {
             $this->baseCompilePath = $compiledPath;
