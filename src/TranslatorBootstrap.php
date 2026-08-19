@@ -7,7 +7,7 @@ use Volcy\Translator\BuildRunner;
 use Volcy\Translator\Contracts\IdStrategy;
 use Volcy\Translator\Drivers\BladeDriver;
 use Volcy\Translator\Filesystem\NativeFilesystem;
-use Volcy\Translator\Flight\Middleware\TranslateMiddleware;
+use Volcy\Translator\Flight\Middleware\LocaleMiddleware;
 use Volcy\Translator\IdStrategyResolver;
 use Volcy\Translator\RenderedViewsRegistry;
 use Volcy\Translator\ScanRunner;
@@ -32,6 +32,10 @@ use Volcy\Translator\ViewIndexPathResolver;
  *   $blade = $translator->blade($viewsPath, $compilePath);
  *
  *   Flight::group('/', function () { ... }, [$translator->middleware()]);
+ * 
+ * The library now uses compile-time translation injection, eliminating
+ * runtime HTML parsing overhead. Templates are compiled separately for each
+ * locale with translations inlined directly into the PHP cache.
  */
 class TranslatorBootstrap
 {
@@ -39,7 +43,7 @@ class TranslatorBootstrap
     protected RenderedViewsRegistry $registry;
     protected ScanRunner $scanRunner;
     protected BuildRunner $buildRunner;
-    protected TranslateMiddleware $middleware;
+    protected LocaleMiddleware $middleware;
 
     protected function __construct(
         protected Engine $app,
@@ -58,10 +62,8 @@ class TranslatorBootstrap
         $localeResolver = $config['locale_resolver'] ?? static fn () => $config['source_locale'] ?? 'en';
         $fallbackLocale = $config['fallback_locale'] ?? ($config['source_locale'] ?? 'en');
 
-        $this->middleware = new TranslateMiddleware(
+        $this->middleware = new LocaleMiddleware(
             $app,
-            $this->catalog,
-            $this->registry,
             $localeResolver instanceof \Closure ? $localeResolver : \Closure::fromCallable($localeResolver),
             $fallbackLocale
         );
@@ -79,7 +81,7 @@ class TranslatorBootstrap
         return new self($app, $config);
     }
 
-    public function middleware(): TranslateMiddleware
+    public function middleware(): LocaleMiddleware
     {
         return $this->middleware;
     }
@@ -108,11 +110,24 @@ class TranslatorBootstrap
      * Convenience factory for a TrackedBladeOne instance already wired
      * to this bootstrap's registry, so view names get recorded
      * automatically as soon as the app renders with it.
+     * 
+     * The compile path is now locale-specific for compile-time translation.
+     * Templates are compiled separately for each locale to enable zero
+     * runtime overhead translation.
+     * 
+     * Note: The locale is resolved at runtime during request processing,
+     * not at blade instantiation time. The middleware sets the locale,
+     * and the blade instance uses it to determine the correct compilation path.
      */
     public function blade(string $viewsPath, string $compilePath, $mode = null): TrackedBladeOne
     {
         $blade = new TrackedBladeOne($viewsPath, $compilePath, $mode);
         $blade->setRegistry($this->registry);
+        $blade->setTranslationCatalog($this->catalog);
+        $blade->setIndexPathResolver(new ViewIndexPathResolver());
+        $blade->setIndexPath($this->config['index_path']);
+        $blade->setCompilePath($compilePath);
+        $blade->setLocaleResolver($this->config['locale_resolver'] ?? static fn () => $this->config['source_locale'] ?? 'en');
 
         return $blade;
     }

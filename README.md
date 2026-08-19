@@ -5,7 +5,16 @@
 [![License](https://img.shields.io/packagist/l/volcy/translator-flight)](https://packagist.org/packages/volcy/translator-flight)
 [![PHP Version](https://img.shields.io/packagist/php-v/volcy/translator-flight)](https://packagist.org/packages/volcy/translator-flight)
 
-FlightPHP bridge for `volcy/translator-core`: a BladeOne wrapper, translation middleware, and Runway commands.
+FlightPHP bridge for `volcy/translator-core`: compile-time template translation with zero runtime overhead.
+
+## Architecture
+
+This library uses a **compile-time translation architecture** for maximum performance:
+
+- **Compile-Time Injection**: Translations are embedded directly into compiled templates, eliminating runtime processing
+- **Locale-Specific Caching**: Each locale maintains its own compiled template cache for instant rendering
+- **Instant Language Switching**: Delivers fully translated HTML from the first byte
+- **Lightweight Middleware**: Only handles locale resolution; all translation work happens during compilation
 
 ## Requirements
 - PHP 8.0+
@@ -77,7 +86,7 @@ Flight::group('/', function () use ($blade) {
 }, [$translator->middleware()]);
 ```
 
-The `TranslateMiddleware` records rendered view names (via `TrackedBladeOne`) and applies translations at response time for non-source locales.
+The `LocaleMiddleware` is lightweight and only resolves the current locale. The actual translation happens during template compilation by `TrackedBladeOne`, which injects translations directly into the compiled PHP files for each locale.
 
 ## CLI: scanning and building locale indexes
 
