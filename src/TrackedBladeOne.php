@@ -68,6 +68,11 @@ class TrackedBladeOne extends BladeOne
         $this->locale = $locale;
     }
 
+    public function lockLocale(string $locale): void
+    {
+        $this->locale = $locale;
+        $this->localeResolver = null; // CLI compile: explicit locale wins, no dynamic override
+    }
     public function setCurrentView(string $viewName): self
     {
         $this->currentView = $viewName;
@@ -143,87 +148,98 @@ class TrackedBladeOne extends BladeOne
         return parent::setView($view);
     }
 
-    /**
-     * Override compile to inject compile-time translations.
-     * This intercepts the template compilation process and replaces
-     * data-i18n attributes with their translated equivalents before
-     * the template is cached as PHP.
-     */
-    public function compile($value = null, $forced = false)
-    {
-        $compiled = parent::compile($value, $forced);
+   // TrackedBladeOne.php
+protected function applyLocaleCompilePath(): void
+{
+    $localePath = $this->getLocaleCompilePath();
 
-        // Only perform compile-time translation if we have the required dependencies
-        if ($this->catalog !== null && $this->resolver !== null && $this->resolveLocale() !== 'en') {
-            $compiled = $this->injectCompileTimeTranslations($compiled);
-        }
+    if (property_exists($this, 'compiledPath')) {
+        $this->compiledPath = $localePath;
+    } elseif (property_exists($this, 'pathCache')) {
+        $this->pathCache = $localePath;
+    } elseif (isset($this->compilePath)) {
+        $this->compilePath = $localePath;
+    }
+}
+/**
+ * Set the locale-specific compile path before compiling/writing to disk.
+ */
+public function compile($value = null, $forced = false)
+{
+    $this->applyLocaleCompilePath();
+    return parent::compile($value, $forced);
+}
 
-        return $compiled;
+public function run($view = null, $variables = [], $mergeData = null): string
+{
+    $this->applyLocaleCompilePath();
+
+    $resolvedView = $view ?? $this->currentView;
+    if ($resolvedView !== null && $this->registry !== null) {
+        $this->registry->add($resolvedView);
     }
 
-    /**
-     * Inject translations into the compiled template during compilation.
-     * This replaces data-i18n placeholders with actual translated strings,
-     * achieving zero runtime overhead.
-     */
-    protected function injectCompileTimeTranslations(string $compiled): string
-    {
-        $viewName = $this->currentView ?: $this->view;
+    return parent::run($view, $variables, $mergeData);
+}
 
-        try {
-            // If viewName is set, fetch for that view; otherwise load general catalog for locale
-            if (!empty($viewName)) {
-                $dictionary = $this->catalog->forViewsAndLocale([$viewName], $this->resolveLocale());
-            } else {
-                throw new \RuntimeException('Current view name is not set for compile-time translation.');
+   // TrackedBladeOne.php
+public function compileString($value): string
+{
+    if ($this->catalog !== null && $this->resolver !== null && $this->resolveLocale() !== 'en') {
+        $value = $this->injectCompileTimeTranslations($value);
+    }
+    return parent::compileString($value);
+}
+
+protected function injectCompileTimeTranslations(string $rawSource): string
+{
+    $viewName = $this->currentView ?: $this->view;
+    if (empty($viewName)) {
+        return $rawSource;
+    }
+
+    try {
+        $dictionary = $this->catalog->forViewsAndLocale([$viewName], $this->resolveLocale());
+    } catch (\Exception $e) {
+        return $rawSource;
+    }
+
+    if (empty($dictionary)) {
+        return $rawSource;
+    }
+
+    $content = $rawSource;
+
+    foreach ($dictionary as $id => $translatedText) {
+        foreach (['"', "'"] as $q) {
+            $extracted = BalancedElementExtractor::extractByAttribute($content, "data-i18n={$q}{$id}{$q}");
+            if ($extracted !== null) {
+                $content = substr_replace(
+                    $content,
+                    $translatedText,
+                    $extracted['inner_start'],
+                    $extracted['inner_end'] - $extracted['inner_start']
+                );
+                break;
             }
+        }
+    }
 
-            if (empty($dictionary)) {
-                return $compiled;
+    // Attribute-value ids (data-i18n-placeholder, etc.) — safe as plain
+    // regex since attribute values can never contain nested tags.
+    return preg_replace_callback(
+        '/data-i18n-([a-z-]+)\s*=\s*["\']([^"\']+)["\'](?<between>[^>]*?)\b\1\s*=\s*(["\'])[^"\']*\4/is',
+        function ($m) use ($dictionary) {
+            $id = $m[2];
+            if (!isset($dictionary[$id])) {
+                return $m[0];
             }
+            $val = htmlspecialchars($dictionary[$id], ENT_QUOTES, 'UTF-8');
+            return "data-i18n-{$m[1]}=\"{$id}\"{$m['between']}{$m[1]}=\"{$val}\"";
+        },
+        $content
+    );
+}
 
-            // Replace data-i18n attributes with their translations
-            return preg_replace_callback(
-                '/data-i18n(?:-[a-z-]+)?\s*=\s*["\']([^"\']+)["\']/',
-                function ($matches) use ($dictionary) {
-                    $id = trim($matches[1]);
-                    if (isset($dictionary[$id])) {
-                        // Inject translated string directly into PHP cache output
-                        return '<?php echo \'' . addslashes($dictionary[$id]) . '\'; ?>';
-                    }
-                    return $matches[0];
-                },
-                $compiled
-            );
-        } catch (\Exception $e) {
-            return $compiled;
-        }
-    }
-
-    /**
-     * Override run to set locale-specific compilation path before rendering
-     */
-    public function run($view = null, $variables = [], $mergeData = null): string
-    {
-        // Set locale-specific compilation path before rendering
-        $localePath = $this->getLocaleCompilePath();
-
-        // Try to set the compilation path using different property names
-        // BladeOne may use different property names depending on version
-        if (property_exists($this, 'compiledPath')) {
-            $this->compiledPath = $localePath;
-        } elseif (property_exists($this, 'pathCache')) {
-            $this->pathCache = $localePath;
-        } elseif (isset($this->compilePath)) {
-            $this->compilePath = $localePath;
-        }
-
-        $resolvedView = $view ?? $this->currentView;
-
-        if ($resolvedView !== null && $this->registry !== null) {
-            $this->registry->add($resolvedView);
-        }
-
-        return parent::run($view, $variables, $mergeData);
-    }
+   
 }

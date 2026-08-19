@@ -19,7 +19,7 @@ class CompileViewsCommand extends AbstractBaseCommand
         $config = $this->config['translator'] ?? [];
         $viewsPath = $config['views_path'] ?? null;
         $compilePath = $config['compile_path'] ?? null;
-        
+
         $targetLocales = array_map('trim', explode(',', $this->values()['locales'] ?? 'fr,es'));
 
         // Get Blade instance from Flight container or bootstrap
@@ -28,23 +28,24 @@ class CompileViewsCommand extends AbstractBaseCommand
 
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($viewsPath));
 
-        foreach ($targetLocales as $locale) {
-            $blade->setLocale($locale);
+        foreach ($iterator as $file) {
+            if ($file->isFile() && str_ends_with($file->getFilename(), '.blade.php')) {
+                // 1. Get real full path and normalize Windows backslashes
+                $fullPath = str_replace('\\', '/', $file->getRealPath());
+                $normalizedViewsPath = str_replace('\\', '/', realpath($viewsPath));
 
-            foreach ($iterator as $file) {
-                if ($file->isFile() && str_ends_with($file->getFilename(), '.blade.php')) {
-                    // Extract relative view path (e.g. "pages.home")
-                    $relativePath = ltrim(str_replace($viewsPath, '', $file->getPathname()), '/\\');
-                    $viewName = str_replace(['.blade.php', '/', '\\'], ['', '.', '.'], $relativePath);
+                // 2. Extract relative view path cleanly
+                $relativePath = ltrim(str_replace($normalizedViewsPath, '', $fullPath), '/');
 
-                    // Tell blade which view is compiling so it loads the correct dictionary
-                    $blade->setCurrentView($viewName);
+                // 3. Convert relative path to standard Blade view notation (e.g., "admin.components.cards.member")
+                $viewName = str_replace(['.blade.php', '/'], ['', '.'], $relativePath);
 
-                    // Compile the template (triggers injectCompileTimeTranslations!)
-                    $blade->compile($file->getPathname(), true);
-                }
+                // 4. Set current view so TrackedBladeOne loads the dictionary index
+                $blade->setCurrentView($viewName);
+
+                // 5. Force compilation using the clean view dot-notation name instead of raw path
+                $blade->compile($viewName, true);
             }
-            $io->ok("Successfully pre-compiled views for locale [{$locale}].");
         }
     }
 }
