@@ -119,7 +119,7 @@ class TranslatorBootstrap
      * not at blade instantiation time. The middleware sets the locale,
      * and the blade instance uses it to determine the correct compilation path.
      */
-    public function blade(string $viewsPath, string $compilePath, $mode = null): TrackedBladeOne
+    public function blade(string $viewsPath, string $compilePath, $mode = 0): TrackedBladeOne
     {
         $blade = new TrackedBladeOne($viewsPath, $compilePath, $mode);
         $blade->setRegistry($this->registry);

@@ -29,22 +29,22 @@ class TrackedBladeOne extends BladeOne
     protected string $indexPath = '';
     protected string $baseCompilePath = '';
     protected $localeResolver = null;
-    
+
     /**
      * @var string|null Dynamic property for BladeOne compilation path compatibility
      */
     protected ?string $compilePath = null;
-    
+
     /**
      * @var string|null Dynamic property for BladeOne view compatibility
      */
     protected ?string $view = null;
-    
+
     /**
      * @var string|null Dynamic property for BladeOne compiledPath compatibility
      */
     protected ?string $compiledPath = null;
-    
+
     /**
      * @var string|null Dynamic property for BladeOne pathCache compatibility
      */
@@ -66,6 +66,12 @@ class TrackedBladeOne extends BladeOne
     public function setLocale(string $locale): void
     {
         $this->locale = $locale;
+    }
+
+    public function setCurrentView(string $viewName): self
+    {
+        $this->currentView = $viewName;
+        return $this;
     }
 
     public function setTranslationCatalog(TranslationCatalog $catalog): void
@@ -102,7 +108,7 @@ class TrackedBladeOne extends BladeOne
             $resolver = $this->localeResolver;
             $this->locale = $resolver instanceof \Closure ? $resolver() : $resolver;
         }
-        
+
         // Also check Flight app container if available
         if (class_exists('flight\Engine') && isset($GLOBALS['flight'])) {
             $flightLocale = $GLOBALS['flight']->get('translator.locale') ?? 'en';
@@ -110,7 +116,7 @@ class TrackedBladeOne extends BladeOne
                 $this->locale = $flightLocale;
             }
         }
-        
+
         return $this->locale;
     }
 
@@ -121,16 +127,16 @@ class TrackedBladeOne extends BladeOne
     {
         $locale = $this->resolveLocale();
         $localePath = rtrim($this->baseCompilePath, '/\\') . DIRECTORY_SEPARATOR . $locale;
-        
+
         // Ensure the locale-specific directory exists
         if (! is_dir($localePath)) {
             @mkdir($localePath, 0755, true);
         }
-        
+
         return $localePath;
     }
 
-    public function setView($view):BladeOne
+    public function setView($view): BladeOne
     {
         $this->currentView = $view;
 
@@ -143,15 +149,15 @@ class TrackedBladeOne extends BladeOne
      * data-i18n attributes with their translated equivalents before
      * the template is cached as PHP.
      */
-    public function compile( $value=null,$forced = false)
+    public function compile($value = null, $forced = false)
     {
-        $compiled = parent::compile($value,$forced);
-        
+        $compiled = parent::compile($value, $forced);
+
         // Only perform compile-time translation if we have the required dependencies
         if ($this->catalog !== null && $this->resolver !== null && $this->resolveLocale() !== 'en') {
             $compiled = $this->injectCompileTimeTranslations($compiled);
         }
-        
+
         return $compiled;
     }
 
@@ -162,41 +168,36 @@ class TrackedBladeOne extends BladeOne
      */
     protected function injectCompileTimeTranslations(string $compiled): string
     {
-        // Get the translation dictionary for the current view
         $viewName = $this->currentView ?: $this->view;
-        
-        if (empty($viewName)) {
-            return $compiled;
-        }
 
         try {
-            $dictionary = $this->catalog->forViewsAndLocale([$viewName], $this->resolveLocale());
-            
+            // If viewName is set, fetch for that view; otherwise load general catalog for locale
+            if (!empty($viewName)) {
+                $dictionary = $this->catalog->forViewsAndLocale([$viewName], $this->resolveLocale());
+            } else {
+                throw new \RuntimeException('Current view name is not set for compile-time translation.');
+            }
+
             if (empty($dictionary)) {
                 return $compiled;
             }
 
             // Replace data-i18n attributes with their translations
-            // Pattern matches: data-i18n="id" or data-i18n-attr="id"
-            $compiled = preg_replace_callback(
+            return preg_replace_callback(
                 '/data-i18n(?:-[a-z-]+)?\s*=\s*["\']([^"\']+)["\']/',
                 function ($matches) use ($dictionary) {
                     $id = trim($matches[1]);
                     if (isset($dictionary[$id])) {
-                        // Return the translated string as a PHP echo statement
+                        // Inject translated string directly into PHP cache output
                         return '<?php echo \'' . addslashes($dictionary[$id]) . '\'; ?>';
                     }
-                    return $matches[0]; // Keep original if no translation found
+                    return $matches[0];
                 },
                 $compiled
             );
-
         } catch (\Exception $e) {
-            // If translation fails, return original compiled template
-            // This ensures the app doesn't break due to translation issues
+            return $compiled;
         }
-
-        return $compiled;
     }
 
     /**
@@ -206,7 +207,7 @@ class TrackedBladeOne extends BladeOne
     {
         // Set locale-specific compilation path before rendering
         $localePath = $this->getLocaleCompilePath();
-        
+
         // Try to set the compilation path using different property names
         // BladeOne may use different property names depending on version
         if (property_exists($this, 'compiledPath')) {
@@ -216,7 +217,7 @@ class TrackedBladeOne extends BladeOne
         } elseif (isset($this->compilePath)) {
             $this->compilePath = $localePath;
         }
-        
+
         $resolvedView = $view ?? $this->currentView;
 
         if ($resolvedView !== null && $this->registry !== null) {
