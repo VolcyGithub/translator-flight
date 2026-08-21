@@ -110,9 +110,19 @@ class TrackedBladeOne extends BladeOne
      */
     protected function resolveLocale(): string
     {
+        // First try explicit locale setting (for CLI compilation)
+        if ($this->locale !== 'en') {
+            return $this->locale;
+        }
+        
+        // Then try locale resolver
         if ($this->localeResolver !== null) {
             $resolver = $this->localeResolver;
-            $this->locale = $resolver instanceof \Closure ? $resolver() : $resolver;
+            $resolved = $resolver instanceof \Closure ? $resolver() : $resolver;
+            if ($resolved !== 'en') {
+                $this->locale = $resolved;
+                return $this->locale;
+            }
         }
 
         // Also check Flight app container if available
@@ -120,6 +130,7 @@ class TrackedBladeOne extends BladeOne
             $flightLocale = $GLOBALS['flight']->get('translator.locale') ?? 'en';
             if ($flightLocale !== 'en') {
                 $this->locale = $flightLocale;
+                return $this->locale;
             }
         }
 
@@ -186,7 +197,8 @@ public function run($view = null, $variables = [], $mergeData = null): string
    // TrackedBladeOne.php
 public function compileString($value): string
 {
-    if ($this->catalog !== null && $this->resolver !== null && $this->resolveLocale() !== 'en') {
+    // Inject compile-time translations BEFORE BladeOne compilation
+    if ($this->catalog !== null && $this->resolver !== null && $this->resolveLocale() !== 'fr') {
         $value = $this->injectCompileTimeTranslations($value);
     }
     return parent::compileString($value);
@@ -195,6 +207,7 @@ public function compileString($value): string
 protected function injectCompileTimeTranslations(string $rawSource): string
 {
     $viewName = $this->currentView ?: $this->view;
+    
     if (empty($viewName)) {
         return $rawSource;
     }
@@ -226,8 +239,28 @@ protected function injectCompileTimeTranslations(string $rawSource): string
         }
     }
 
-    // Attribute-value ids (data-i18n-placeholder, etc.) — safe as plain
-    // regex since attribute values can never contain nested tags.
+    // Handle custom data-i18n-* attributes (data-i18n-loading, data-i18n-text, etc.)
+    // Replace data-i18n-* attribute values with translations
+    $content = preg_replace_callback(
+        '/data-i18n-([a-zA-Z0-9_-]+)\s*=\s*["\']([^"\']+)["\']/i',
+        function ($matches) use ($dictionary) {
+            $attrName = $matches[1]; // e.g., 'loading', 'text'
+            $attrValue = $matches[2]; // the original text/ID
+            
+            // Check if this is a translation ID in our dictionary
+            if (isset($dictionary[$attrValue])) {
+                $translatedText = htmlspecialchars($dictionary[$attrValue], ENT_QUOTES, 'UTF-8');
+                return "data-i18n-{$attrName}=\"{$translatedText}\"";
+            }
+            
+            // If not found in dictionary, keep original
+            return $matches[0];
+        },
+        $content
+    );
+
+    // Handle paired attributes (data-i18n-* with corresponding attribute replacement)
+    // e.g., data-i18n-placeholder="id" + placeholder="original" -> placeholder="translated"
     return preg_replace_callback(
         '/data-i18n-([a-z-]+)\s*=\s*["\']([^"\']+)["\'](?<between>[^>]*?)\b\1\s*=\s*(["\'])[^"\']*\4/is',
         function ($m) use ($dictionary) {
