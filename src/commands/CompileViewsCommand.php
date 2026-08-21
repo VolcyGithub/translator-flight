@@ -9,8 +9,8 @@ class CompileViewsCommand extends AbstractBaseCommand
 {
     public function __construct(array $config)
     {
-        parent::__construct('translator:compile', 'Pre-compile views for all locales into static PHP cache files', $config);
-        $this->option('--locales [locales]', 'Comma-separated target locales (e.g. fr,es)');
+        parent::__construct('translator:compile', 'Pre-compile views for specified locale into static PHP cache files', $config);
+        $this->argument('locale', 'Target locale to compile (e.g. en, fr, es)');
     }
 
 public function execute(): void
@@ -25,36 +25,35 @@ public function execute(): void
         $config['excluded_folders'] ?? []
     );
 
-    $targetLocales = array_map('trim', explode(',', $this->values()['locales'] ?? 'fr'));
+    $targetLocale = trim($this->values()['locale'] ?? 'en');
 
     $translator = \Volcy\Translator\Flight\TranslatorBootstrap::register(Flight::app(), $config);
     $blade = $translator->blade($viewsPath, $compilePath);
+    $blade->lockLocale($targetLocale);
 
-    foreach ($targetLocales as $locale) {
-        $blade->lockLocale($locale);
+    $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($viewsPath));
+    $compiledCount = 0;
 
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($viewsPath));
-
-        foreach ($iterator as $file) {
-            if (!$file->isFile() || !str_ends_with($file->getFilename(), '.blade.php')) {
-                continue;
-            }
-
-            $relativePath = ltrim(str_replace($viewsPath, '', $file->getPathname()), '/\\');
-            $normalized = str_replace('\\', '/', $relativePath);
-
-            if ($this->isExcluded($normalized, $excludedFolders)) {
-                continue;
-            }
-
-            $viewName = str_replace(['.blade.php', '/', '\\'], ['', '.', '.'], $relativePath);
-
-            $blade->setCurrentView($viewName);
-            $blade->compile($viewName, true);
+    foreach ($iterator as $file) {
+        if (!$file->isFile() || !str_ends_with($file->getFilename(), '.blade.php')) {
+            continue;
         }
 
-        $io->ok("Successfully pre-compiled views for locale [{$locale}].");
+        $relativePath = ltrim(str_replace($viewsPath, '', $file->getPathname()), '/\\');
+        $normalized = str_replace('\\', '/', $relativePath);
+
+        if ($this->isExcluded($normalized, $excludedFolders)) {
+            continue;
+        }
+
+        $viewName = str_replace(['.blade.php', '/', '\\'], ['', '.', '.'], $relativePath);
+
+        $blade->setCurrentView($viewName);
+        $blade->compile($viewName, true);
+        $compiledCount++;
     }
+
+    $io->ok("Successfully pre-compiled {$compiledCount} view(s) for locale [{$targetLocale}].");
 }
 
 private function isExcluded(string $relativePath, array $excludedFolders): bool

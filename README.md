@@ -258,15 +258,15 @@ vendor/bin/runway translator:build fr --source=en
 - `--source`: Source locale (default: from config)
 
 ### `translator:compile`
-Pre-compiles views for specific locales with translations embedded.
+Pre-compiles views for a specific locale with translations embedded.
 
 ```bash
-vendor/bin/runway translator:compile --locales=en,fr
+vendor/bin/runway translator:compile en
+vendor/bin/runway translator:compile fr
 ```
 
-**Options:**
-- `--locales`: Comma-separated target locales (default: from config)
-- `--clear`: Clear existing compiled views before recompiling
+**Arguments:**
+- `<locale>`: Target locale to compile (required)
 
 ## Configuration
 
